@@ -1,0 +1,87 @@
+PS6B3
+Sumaiya Hashmi
+
+Block Stacking
+Describe the algorithm that you implemented, argue that it is correct, and argue its
+expected running time.
+======================================================================================
+
+I implemented the following dynamic programming algorithm to solve the block stacking problem:
+
+First, some preprocessing:
+For each type of block, there are 3 possible orientations. Construct a list of n = 3*k blocks , where k is the number of types of blocks, such that the list includes a block for each possible orientation. We know we won't need more than one of each orientation, since blocks with the same length and width dimensions can't be stacked on top of one another.
+
+Sort the list of all blocks by the smaller of the base dimensions, then reverse this ordering. So we have a list of blocks in decreasing order of their smallest dimension.
+
+BS(i) has the maximum height of a stack of blocks with block i at the top.
+BS(i) = height(i) if i = 1
+BS(i) = max(BS(j) + height(i) for 1 <= j < i)
+
+BS is a 1-dimensional table of size n.
+The recursive call finds the base that we can stack below block i such that total height is maximized.
+The optimal height is the maximum value in BS, found by iterating through it. The optimal sequence of blocks is saved as follows:
+Keep an array A of size n. Whenever we add a block below our current block (i.e. whenever the recursive call above returns BS(j) + height(i) as the maximum), store that block j at A[i]. After filling out BS, find the index m of its maximum element. A[m] is the top block. A[A[m]] is the next block, and so on.
+
+This algorithm returns a valid solution, since it checks that both base dimensions of a lower block are greater than those of the block above it.
+It returns the optimal solution. The problem displays optimal substructure; If we have an optimal stacking of blocks 1 … n, but 1 … n-1 do not form an optimal stacking for n-1 blocks, then we could combine block n with a better solution for the other n-1 blocks and get a better overall solution.
+We have overlapping subproblems, since each recursive call above looks up already-stored values from BS. We only include a block in the final stack if its inclusion will lead to an optimal total height.
+
+Running time is O(n^2). We're iterating through all the blocks from 1 to n. Within each of those iterations, to find the block below that maximizes total height, we iterate through every block with a larger dimension. This has an upper bound of n^2. The other work of storing the actual sequence and finding the max at the end is consumed by this larger n^2 factor.
+Space complexity is Theta(n), since both BS and A are n-length arrays.
+
+ 
+Describe an interesting design decision that you made (i.e. an alternative that you
+considered for your algorithm and why you decided against it).
+=======================================================================================
+I considered sorting the blocks in increasing order of smallest dimension. In this case, the first block could potentially have any of the remaining blocks underneath it. However, those entries in BS would not have been filled yet. This could work by reversing the order of iteration, but I chose to keep the iteration simpler at the cost of an additional pre-processing step. With the reverse-ordered blocks, it's possible for both loops to iterate through the blocks in order of increasing indices. Also, the inner loop now only traverses up until the index of the outer loop (i.e. all those spots in BS are already filled in).
+
+I also considered storing a tuple of (max height, [sequence of blocks]) in each cell of BS. However, tuples in Python are immutable, so working with lists was easier. And using a separate array for results seemed more simple.
+
+
+An overview of how the code you submit implements the algorithm you describe (e.g.
+highlights of central data structures/classes/methods/functions/procedures/etc . .
+.)
+========================================================================================
+The code includes several helper functions for the pre-processing steps as well as for a conditional check. For the pre-processing, I represent each block as an array of 3 dimensions. An array of arrays, allBlocks, is created and filled with the blocks in all 3 orientations. It's possible that there are duplicates; I sacrifice the additional space they require (bounded by 3*k) to save running time in not having to iterate through the 3*k blocks and remove duplicates. The correctness is unaffected since identical blocks can't be stacked on one another.
+Built-in sort and reverse are used, which run in O(n log n) and O(n) time, respectively. An array for the stack of blocks in the result (result) is created with size 3*n, along with an array BS for the dynamic programming table. 
+The code first iterates through each block and sets the BS(i) value to the height of block i, assuming a single-block stack.
+Then, we iterate through all the blocks again, treating each as a top block. Within that loop, we iterate through all the blocks larger than the top block. For each one, we check if both base dimensions are larger (using a helper function). If they are, we compare the current value at BS(topBlock) with the value we'd get by placing block bottomBlock below topBlock. We use the larger of the two, and add bottomBlock to results if necessary.
+After the dynamic table has been filled, we find the maximum value, and its index in BS, in O(n) time. We determine the sequence of blocks by working backwards in the results array. Finally, we print the results and write the output to a file.
+
+
+How you tested your code and the results of sample tests
+=============================================================
+I tested my code on the following inputs and got the following outputs:
+INPUT:
+3
+2 6 8
+4 4 4
+1 10 4
+
+OUTPUT:
+3
+6 8 2 
+2 6 8 
+1 4 10 
+
+STDOUT:
+"The tallest tower has 3 blocks and a height of 20"
+
+INPUT:
+4
+3 6 8
+4 4 4
+1 10 4
+2 5 2
+
+OUTPUT:
+4
+6 8 3 
+3 6 8 
+2 5 2 
+1 4 10 
+
+STDOUT:
+"The tallest tower has 4 blocks and a height of 23"
+
+
